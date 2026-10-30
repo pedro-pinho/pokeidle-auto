@@ -21,6 +21,10 @@
     !el.closest('[hidden], [aria-hidden="true"]');
   const nome = el => el?.textContent?.trim().replace(/\s+/g, ' ') || '(sem nome)';
   const regioes = () => [...document.querySelectorAll('#f-regiao .mapa-area.mapa-reg-bt')];
+  // Áreas bloqueadas podem ser divs em vez de buttons: preserve a ordem da lista.
+  const destinos = 'button.ml-linha:not(.capturado), .ml-linha.travada:not(.capturado)';
+  const areaBloqueada = el => el.classList.contains('travada') || el.disabled ||
+    el.getAttribute('aria-disabled') === 'true';
   const aviso = mensagem => {
     if (mensagem !== ultimoAviso) console.log('[PokeIdle Auto]', mensagem);
     ultimoAviso = mensagem;
@@ -49,7 +53,7 @@
         return;
       }
       // Se o DOM foi recriado, procura o mesmo destino na lista atual.
-      const alvo = [...corpo.querySelectorAll('button.ml-linha:not(.capturado)')]
+      const alvo = [...corpo.querySelectorAll(destinos)]
         .find(el => nome(el) === pendente.nome);
       if (!alvo) {
         pendente = null;
@@ -61,7 +65,11 @@
         escolherNaRegiao = false;
         return;
       }
-      if (!alvo.disabled && visivel(alvo)) alvo.click();
+      if (areaBloqueada(alvo)) {
+        aviso(`Aguardando desbloqueio da rota: ${nome(alvo)}.`);
+        return;
+      }
+      if (visivel(alvo)) alvo.click();
       return;
     }
 
@@ -106,9 +114,13 @@
       }
     }
 
-    const proximo = corpo.querySelector('button.ml-linha:not(.capturado)');
+    const proximo = corpo.querySelector(destinos);
     if (proximo) {
-      if (proximo.disabled || !visivel(proximo)) {
+      if (areaBloqueada(proximo)) {
+        aviso(`Aguardando desbloqueio da rota: ${nome(proximo)}.`);
+        return;
+      }
+      if (!visivel(proximo)) {
         aviso(`Aguardando a rota ficar disponível: ${nome(proximo)}.`);
         return;
       }
@@ -127,8 +139,9 @@
       api.stop();
       return;
     }
-    if (seguinte.disabled || seguinte.getAttribute('aria-disabled') === 'true') {
-      bloquear(`A próxima região está bloqueada: ${nome(seguinte)}.`);
+    if (seguinte.classList.contains('mapa-area-travada') ||
+        seguinte.disabled || seguinte.getAttribute('aria-disabled') === 'true') {
+      aviso(`Aguardando desbloqueio da região: ${nome(seguinte)}.`);
       return;
     }
     regiaoPendente = {

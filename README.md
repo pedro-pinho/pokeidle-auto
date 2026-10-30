@@ -27,7 +27,7 @@ Recarregar ou fechar a página encerra a execução. Para iniciar novamente, col
 
 1. Verifica se o mapa está aberto. Quando necessário, tenta reabri-lo.
 2. Aguarda a rota atual receber a classe `capturado`.
-3. Seleciona o primeiro `button.ml-linha` sem a classe `capturado`, na ordem da lista.
+3. Procura o primeiro destino pendente na ordem da lista, incluindo áreas bloqueadas com a classe `travada`. Se estiver bloqueado, aguarda sua liberação sem clicar nem pular para outro destino.
 4. Tenta clicar nesse destino a cada **1,5 segundo**. Se o combate impedir a viagem, continua tentando.
 5. Usa o fechamento do mapa após o clique como confirmação de que a viagem foi aceita. Também reconhece quando o destino passa a ser a rota ativa.
 6. Reabre o mapa e aguarda a captura na nova rota.
@@ -35,6 +35,8 @@ Recarregar ou fechar a página encerra a execução. Para iniciar novamente, col
 8. Encerra quando a lista não tem destinos pendentes e não existe uma próxima região.
 
 A escolha segue a ordem do mapa, sem otimização por nível, dificuldade ou espécie. A captura é identificada pela classe da rota; o script não consulta diretamente o inventário ou a Pokédex.
+
+Áreas com a classe `travada` e regiões com a classe `mapa-area-travada` são verificadas novamente a cada **1,5 segundo**, sem prazo máximo de espera. O jogador continua na rota onde está, ganhando experiência pelas automações do jogo. Quando o mapa refletir o desbloqueio, o script continua automaticamente, sem precisar executar `resume()`. Controles desabilitados também são aguardados.
 
 ## Comandos
 
@@ -75,9 +77,11 @@ Se a interface do jogo mudar, estes seletores e classes podem precisar de ajuste
 | `.ml-linha.on` | Rota ativa na lista. |
 | `.capturado` | Indica que a captura da rota foi concluída. |
 | `button.ml-linha:not(.capturado)` | Destinos que ainda precisam de captura. |
+| `.ml-linha.travada:not(.capturado)` | Áreas pendentes bloqueadas por nível, inclusive quando são divs. |
 | `[data-modal="mapa"]` | Controle que abre o mapa. |
 | `#f-regiao .mapa-area.mapa-reg-bt` | Regiões, na ordem de navegação. |
 | `.on` nos controles de região | Região selecionada. |
+| `.mapa-area-travada` | Região bloqueada por nível. |
 
 ## Solução de problemas
 
@@ -85,7 +89,7 @@ Se a interface do jogo mudar, estes seletores e classes podem precisar de ajuste
 - **Tentando viajar repetidamente:** o combate pode estar impedindo a mudança. O script continuará tentando no intervalo configurado.
 - **Rota indisponível:** o script aguarda o primeiro destino pendente ficar visível e habilitado; ele não pula esse destino.
 - **Nova região não carregou:** o script pausa se não conseguir confirmar a troca em 30 segundos. Confira o mapa e use `pokeIdleAuto.resume()`.
-- **Próxima região bloqueada:** confira os requisitos de acesso no jogo antes de retomar.
+- **Área ou próxima região bloqueada:** o script aguarda o desbloqueio indicado no mapa e continua automaticamente. Não é necessário retomar manualmente.
 - **Rota atual não aparece:** verifique se o mapa está na região da sua caçada atual.
 - **Execução lenta em segundo plano:** navegadores podem reduzir a frequência dos temporizadores de abas inativas.
 
