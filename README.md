@@ -25,12 +25,12 @@ Recarregar ou fechar a página encerra a execução. Para iniciar novamente, col
 
 ## Funcionamento
 
-1. Verifica se o mapa está aberto. Quando necessário, tenta reabri-lo.
+1. Verifica se o mapa está aberto. Se você o fechar manualmente, aguarda até você abri-lo novamente e retoma automaticamente.
 2. Aguarda a rota atual receber a classe `capturado`.
 3. Procura o primeiro destino pendente na ordem da lista, incluindo áreas bloqueadas com a classe `travada`. Se estiver bloqueado, aguarda sua liberação sem clicar nem pular para outro destino.
 4. Tenta clicar nesse destino a cada **1,5 segundo**. Se o combate impedir a viagem, continua tentando.
 5. Usa o fechamento do mapa após o clique como confirmação de que a viagem foi aceita. Também reconhece quando o destino passa a ser a rota ativa.
-6. Reabre o mapa e aguarda a captura na nova rota.
+6. Reabre o mapa após a viagem automática e aguarda a captura na nova rota.
 7. Quando não há destinos pendentes, seleciona a próxima região e aguarda sua lista carregar antes de continuar.
 8. Encerra quando a lista não tem destinos pendentes e não existe uma próxima região.
 
@@ -50,6 +50,14 @@ Execute os comandos no console da mesma aba:
 | `pokeIdleAuto.status()` | Mostra se está parado ou pausado e os destinos pendentes. |
 
 Pausar ou parar o script não desativa as automações nativas do jogo.
+
+## Usar outras telas durante a automação
+
+Você pode fechar o mapa para acessar outras partes do jogo. O script identifica cliques reais e a tecla Escape, aguarda enquanto o mapa estiver fechado e retoma quando você abrir o mapa novamente. Se iniciar o script com o mapa fechado, ele também aguardará sua abertura manual.
+
+O fechamento causado por uma tentativa de viagem do script continua provocando a reabertura automática do mapa. Ao fechar manualmente, as tentativas pendentes são descartadas; na volta, o script lê novamente a rota e a região selecionadas. Uma pausa explícita com `pause()` continua exigindo `resume()`.
+
+A distinção usa os eventos de interação do navegador e a visibilidade do mapa. Alterações na forma como o jogo fecha o mapa podem exigir ajustes.
 
 ## Configuração
 

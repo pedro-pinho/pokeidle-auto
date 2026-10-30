@@ -14,6 +14,9 @@
   let regiaoPendente = null;
   let escolherNaRegiao = false;
   let ultimoAviso = '';
+  let aguardandoMapaManual = false;
+  let reabrirAposViagem = false;
+  let ultimaAcaoHumana = false;
 
   const lista = () => document.querySelector('#ml-corpo');
   const visivel = el => !!el?.isConnected && el.getClientRects().length > 0 &&
@@ -39,9 +42,49 @@
     else aviso('Aguardando o botão do mapa ficar disponível.');
   };
 
+  function aguardarJogador() {
+    aguardandoMapaManual = true;
+    reabrirAposViagem = false;
+    pendente = null;
+    regiaoPendente = null;
+    escolherNaRegiao = false;
+    aviso('Mapa fechado pelo jogador. Aguardando você abrir o mapa novamente.');
+  }
+
+  // isTrusted distingue os cliques reais dos cliques feitos por este script.
+  function interacao(evento) {
+    if (!evento.isTrusted || (evento.type === 'keydown' && evento.key !== 'Escape')) return;
+    ultimaAcaoHumana = true;
+    const estavaAberto = visivel(lista());
+    if (!estavaAberto && reabrirAposViagem) aguardarJogador();
+    // Executa depois dos handlers do jogo, inclusive ao fechar com Escape ou pelo fundo.
+    setTimeout(() => {
+      if (!parado && estavaAberto && !visivel(lista()) && ultimaAcaoHumana) aguardarJogador();
+    }, 0);
+  }
+  document.addEventListener('click', interacao, true);
+  document.addEventListener('keydown', interacao, true);
+
+  function clicarRota(alvo) {
+    ultimaAcaoHumana = false;
+    alvo.click();
+  }
+
   function passo() {
     const corpo = lista();
     const aberto = visivel(corpo);
+
+    if (!aberto && ultimaAcaoHumana) aguardarJogador();
+    if (aguardandoMapaManual) {
+      if (!aberto) return;
+      aguardandoMapaManual = false;
+      ultimaAcaoHumana = false;
+      aviso('Mapa aberto. Automação retomada.');
+    }
+    if (reabrirAposViagem) {
+      if (!aberto) { abrirMapa(); return; }
+      reabrirAposViagem = false;
+    }
 
     // O fechamento após o clique é a confirmação de viagem informada pelo jogo.
     if (pendente) {
@@ -49,6 +92,7 @@
         aviso(`Viagem aceita: ${pendente.nome}. Reabrindo o mapa.`);
         pendente = null;
         escolherNaRegiao = false;
+        reabrirAposViagem = true;
         abrirMapa();
         return;
       }
@@ -69,12 +113,12 @@
         aviso(`Aguardando desbloqueio da rota: ${nome(alvo)}.`);
         return;
       }
-      if (visivel(alvo)) alvo.click();
+      if (visivel(alvo)) clicarRota(alvo);
       return;
     }
 
     if (!aberto) {
-      abrirMapa();
+      aguardarJogador();
       return;
     }
 
@@ -126,7 +170,7 @@
       }
       pendente = { nome: nome(proximo) };
       aviso(`Tentando viajar para ${pendente.nome}; repetirei enquanto houver combate.`);
-      proximo.click();
+      clicarRota(proximo);
       return;
     }
 
@@ -150,6 +194,7 @@
       inicio: Date.now(), estavelDesde: Date.now()
     };
     aviso(`Abrindo a próxima região: ${nome(seguinte)}.`);
+    ultimaAcaoHumana = false;
     seguinte.click();
   }
 
@@ -160,8 +205,14 @@
       pausado = false;
       aviso('Retomado.');
     },
-    stop() { parado = true; clearTimeout(timer); console.log('[PokeIdle Auto] Parado.'); },
-    status() { return { parado, pausado, destino: pendente?.nome, regiao: regiaoPendente?.nome }; }
+    stop() {
+      parado = true;
+      clearTimeout(timer);
+      document.removeEventListener('click', interacao, true);
+      document.removeEventListener('keydown', interacao, true);
+      console.log('[PokeIdle Auto] Parado.');
+    },
+    status() { return { parado, pausado, aguardandoMapaManual, destino: pendente?.nome, regiao: regiaoPendente?.nome }; }
   };
   function ciclo() {
     if (parado) return;
